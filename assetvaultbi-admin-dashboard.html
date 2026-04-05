@@ -1,0 +1,752 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Asset Vault BI — Admin Portal</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  /* ── Reset & Base ── */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg:      #0d1117;
+    --bg2:     #161b22;
+    --bg3:     #21262d;
+    --bg4:     #2d333b;
+    --border:  #30363d;
+    --border2: #484f58;
+    --text:    #e6edf3;
+    --text2:   #8b949e;
+    --text3:   #6e7681;
+    --gold:    #c9a227;
+    --gold2:   #e3b84a;
+    --gold3:   #f5d87e;
+    --blue:    #388bfd;
+    --blue2:   #58a6ff;
+    --green:   #3fb950;
+    --red:     #f85149;
+    --orange:  #d29922;
+    --purple:  #bc8cff;
+    --r: 8px;
+    --r2: 12px;
+    --sidebar-w: 230px;
+  }
+  html, body { height: 100%; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 14px; background: var(--bg); color: var(--text); line-height: 1.6; overflow: auto; }
+
+  /* ── Layout ── */
+  .shell { display: flex; min-height: 100vh; }
+  .sidebar { width: var(--sidebar-w); background: var(--bg2); border-right: 1px solid var(--border); display: flex; flex-direction: column; flex-shrink: 0; position: sticky; top: 0; height: 100vh; overflow-y: auto; }
+  .main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+  .content { flex: 1; padding: 24px; }
+
+  /* ── Sidebar ── */
+  .brand { padding: 16px 18px; border-bottom: 1px solid var(--border); }
+  .brand-img { width: 130px; height: auto; display: block; object-fit: contain; }
+  .brand-sub { font-size: 11px; color: var(--text3); margin-top: 6px; }
+  .nav { padding: 12px 8px; flex: 1; }
+  .nav-label { font-size: 10px; font-weight: 600; color: var(--text3); letter-spacing: .8px; padding: 10px 10px 4px; text-transform: uppercase; }
+  .nav-item { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: var(--r); cursor: pointer; color: var(--text2); font-size: 13px; transition: all .15s; margin-bottom: 1px; user-select: none; }
+  .nav-item:hover { background: var(--bg3); color: var(--text); }
+  .nav-item.active { background: rgba(201,162,39,.13); color: var(--gold2); }
+  .nav-item .icon { width: 16px; text-align: center; font-size: 14px; flex-shrink: 0; opacity: .8; }
+  .nav-badge { margin-left: auto; background: var(--gold); color: #000; font-size: 10px; font-weight: 700; padding: 1px 6px; border-radius: 10px; }
+  .sidebar-footer { padding: 12px 16px; border-top: 1px solid var(--border); }
+  .admin-row { display: flex; align-items: center; gap: 10px; }
+  .admin-avatar { width: 30px; height: 30px; border-radius: 50%; background: linear-gradient(135deg, var(--gold), var(--gold2)); display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; color: #000; flex-shrink: 0; }
+  .admin-name { font-size: 12px; font-weight: 500; }
+  .admin-role { font-size: 10px; color: var(--text3); }
+
+  /* ── Topbar ── */
+  .topbar { padding: 14px 24px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; background: var(--bg2); flex-shrink: 0; }
+  .topbar-left h1 { font-size: 16px; font-weight: 500; }
+  .topbar-left p  { font-size: 12px; color: var(--text3); margin-top: 1px; }
+  .topbar-right { display: flex; gap: 8px; align-items: center; }
+  .btn { padding: 6px 14px; border-radius: var(--r); border: 1px solid var(--border); background: var(--bg3); color: var(--text2); font-size: 12px; cursor: pointer; transition: all .15s; font-family: inherit; }
+  .btn:hover { border-color: var(--border2); color: var(--text); }
+  .btn-primary { background: var(--gold); border-color: var(--gold); color: #000; font-weight: 600; }
+  .btn-primary:hover { background: var(--gold2); border-color: var(--gold2); }
+  .btn-danger { background: rgba(248,81,73,.12); border-color: var(--red); color: var(--red); }
+
+  /* ── Section visibility ── */
+  .section { display: none; }
+  .section.active { display: block; }
+
+  /* ── Stats grid ── */
+  .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 22px; }
+  .stat-card { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--r2); padding: 18px; position: relative; overflow: hidden; }
+  .stat-card::after { content: ''; position: absolute; right: -10px; top: -10px; width: 60px; height: 60px; border-radius: 50%; opacity: .06; }
+  .stat-card.gold::after  { background: var(--gold);  }
+  .stat-card.blue::after  { background: var(--blue);  }
+  .stat-card.green::after { background: var(--green); }
+  .stat-card.purple::after{ background: var(--purple);}
+  .stat-icon { font-size: 18px; margin-bottom: 10px; }
+  .stat-label { font-size: 11px; color: var(--text3); text-transform: uppercase; letter-spacing: .6px; margin-bottom: 6px; }
+  .stat-value { font-size: 32px; font-weight: 700; line-height: 1; }
+  .stat-value.gold   { color: var(--gold2); }
+  .stat-value.blue   { color: var(--blue2); }
+  .stat-value.green  { color: var(--green); }
+  .stat-value.purple { color: var(--purple); }
+  .stat-trend { font-size: 11px; color: var(--text3); margin-top: 6px; }
+  .stat-trend span { color: var(--green); }
+
+  /* ── Charts row ── */
+  .charts-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; margin-bottom: 22px; }
+  .chart-card { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--r2); padding: 18px; }
+  .chart-card.wide { grid-column: span 2; }
+  .chart-title { font-size: 12px; font-weight: 600; color: var(--text2); text-transform: uppercase; letter-spacing: .5px; margin-bottom: 16px; display: flex; align-items: center; justify-content: space-between; }
+  .chart-title span { font-size: 10px; color: var(--text3); font-weight: 400; text-transform: none; }
+  .chart-wrap { position: relative; }
+
+  /* ── Mini bar chart (CSS only) ── */
+  .mini-bars { display: flex; flex-direction: column; gap: 10px; }
+  .mini-bar-row { display: flex; align-items: center; gap: 10px; }
+  .mini-bar-label { font-size: 11px; color: var(--text3); width: 110px; text-align: right; flex-shrink: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .mini-bar-track { flex: 1; background: var(--bg3); border-radius: 4px; height: 8px; overflow: hidden; }
+  .mini-bar-fill  { height: 100%; border-radius: 4px; transition: width .8s ease; }
+  .mini-bar-val   { font-size: 11px; color: var(--text3); width: 28px; text-align: right; flex-shrink: 0; }
+
+  /* ── Donut legend ── */
+  .donut-legend { display: flex; flex-direction: column; gap: 10px; margin-top: 12px; }
+  .legend-row   { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--text2); }
+  .legend-dot   { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+  .legend-val   { margin-left: auto; color: var(--text); font-weight: 500; }
+
+  /* ── Activity feed ── */
+  .activity-feed { display: flex; flex-direction: column; gap: 0; }
+  .activity-item { display: flex; align-items: flex-start; gap: 12px; padding: 12px 0; border-bottom: 1px solid rgba(48,54,61,.5); }
+  .activity-item:last-child { border-bottom: none; }
+  .activity-dot-wrap { display: flex; flex-direction: column; align-items: center; padding-top: 3px; }
+  .activity-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+  .activity-line { width: 1px; flex: 1; background: var(--border); margin-top: 4px; min-height: 20px; }
+  .activity-item:last-child .activity-line { display: none; }
+  .activity-body { flex: 1; }
+  .activity-title { font-size: 13px; color: var(--text); }
+  .activity-title strong { color: var(--gold2); font-weight: 500; }
+  .activity-meta { font-size: 11px; color: var(--text3); margin-top: 2px; }
+
+  /* ── Table ── */
+  .table-card { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--r2); overflow: hidden; margin-bottom: 20px; }
+  .table-head { padding: 14px 18px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+  .table-head-title { font-size: 13px; font-weight: 500; }
+  .search-box { display: flex; align-items: center; gap: 8px; background: var(--bg3); border: 1px solid var(--border); border-radius: var(--r); padding: 5px 10px; }
+  .search-box input { background: none; border: none; outline: none; color: var(--text); font-size: 12px; width: 180px; font-family: inherit; }
+  .search-box input::placeholder { color: var(--text3); }
+  .filter-tabs { display: flex; gap: 4px; padding: 10px 18px; border-bottom: 1px solid var(--border); }
+  .ftab { padding: 4px 12px; border-radius: 20px; font-size: 11px; cursor: pointer; color: var(--text3); transition: all .15s; }
+  .ftab:hover { color: var(--text); }
+  .ftab.active { background: rgba(201,162,39,.15); color: var(--gold2); }
+  table { width: 100%; border-collapse: collapse; }
+  th { padding: 10px 18px; font-size: 11px; font-weight: 600; color: var(--text3); text-align: left; border-bottom: 1px solid var(--border); text-transform: uppercase; letter-spacing: .5px; }
+  td { padding: 12px 18px; border-bottom: 1px solid rgba(48,54,61,.4); font-size: 13px; color: var(--text2); vertical-align: middle; }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: rgba(33,38,45,.5); }
+  td.name { color: var(--text); font-weight: 500; }
+  td.muted { color: var(--text3); font-size: 12px; }
+
+  /* ── Badges ── */
+  .badge { display: inline-flex; align-items: center; gap: 5px; padding: 3px 9px; border-radius: 20px; font-size: 11px; font-weight: 500; }
+  .badge-dot { width: 5px; height: 5px; border-radius: 50%; }
+  .badge-new     { background: rgba(201,162,39,.15); color: var(--gold2);  }  .badge-new .badge-dot     { background: var(--gold2); }
+  .badge-review  { background: rgba(56,139,253,.15); color: var(--blue2);  }  .badge-review .badge-dot  { background: var(--blue2); }
+  .badge-active  { background: rgba(63,185,80,.15);  color: var(--green);  }  .badge-active .badge-dot  { background: var(--green); }
+  .badge-closed  { background: rgba(110,118,129,.15);color: var(--text3);  }  .badge-closed .badge-dot  { background: var(--text3); }
+  .badge-pending { background: rgba(210,153,34,.15); color: var(--orange); }  .badge-pending .badge-dot { background: var(--orange); }
+
+  /* ── Action btn ── */
+  .act-btn { padding: 4px 10px; border-radius: 5px; border: 1px solid var(--border); background: none; color: var(--text3); font-size: 11px; cursor: pointer; transition: all .15s; font-family: inherit; }
+  .act-btn:hover { border-color: var(--gold); color: var(--gold2); }
+
+  /* ── Modal ── */
+  .modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,.75); display: flex; align-items: center; justify-content: center; z-index: 200; opacity: 0; pointer-events: none; transition: opacity .2s; }
+  .modal-backdrop.open { opacity: 1; pointer-events: all; }
+  .modal { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--r2); width: 540px; max-width: 94vw; max-height: 88vh; overflow-y: auto; transform: translateY(16px); transition: transform .2s; }
+  .modal-backdrop.open .modal { transform: translateY(0); }
+  .modal-top { padding: 18px 20px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+  .modal-top h3 { font-size: 15px; font-weight: 500; }
+  .modal-close { background: none; border: none; color: var(--text3); font-size: 20px; cursor: pointer; line-height: 1; padding: 0 2px; }
+  .modal-close:hover { color: var(--text); }
+  .modal-body { padding: 20px; }
+  .modal-foot { padding: 14px 20px; border-top: 1px solid var(--border); display: flex; gap: 8px; justify-content: flex-end; }
+  .field-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px; }
+  .field { display: flex; flex-direction: column; gap: 4px; }
+  .field.full { grid-column: 1 / -1; }
+  .field label { font-size: 10px; color: var(--text3); text-transform: uppercase; letter-spacing: .5px; }
+  .field-val { font-size: 13px; color: var(--text); background: var(--bg3); padding: 8px 10px; border-radius: var(--r); border: 1px solid var(--border); min-height: 36px; }
+  .field select, .field textarea, .field input[type=text] { background: var(--bg3); border: 1px solid var(--border); color: var(--text); border-radius: var(--r); padding: 8px 10px; font-size: 13px; font-family: inherit; width: 100%; }
+  .field textarea { resize: vertical; min-height: 80px; }
+  .field select:focus, .field textarea:focus, .field input:focus { outline: none; border-color: var(--gold); }
+
+  /* ── Settings ── */
+  .settings-block { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--r2); margin-bottom: 16px; overflow: hidden; }
+  .settings-block-head { padding: 14px 18px; border-bottom: 1px solid var(--border); font-size: 13px; font-weight: 500; }
+  .settings-row { padding: 12px 18px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid rgba(48,54,61,.4); }
+  .settings-row:last-child { border-bottom: none; }
+  .s-label { font-size: 13px; color: var(--text2); }
+  .s-sub   { font-size: 11px; color: var(--text3); margin-top: 2px; }
+  .toggle { position: relative; width: 38px; height: 20px; flex-shrink: 0; }
+  .toggle input { opacity: 0; width: 0; height: 0; position: absolute; }
+  .toggle-sl { position: absolute; inset: 0; background: var(--bg4); border-radius: 10px; cursor: pointer; transition: .2s; border: 1px solid var(--border); }
+  .toggle-sl::after { content: ''; position: absolute; width: 14px; height: 14px; left: 2px; top: 2px; background: var(--text3); border-radius: 50%; transition: .2s; }
+  .toggle input:checked + .toggle-sl { background: var(--gold); border-color: var(--gold); }
+  .toggle input:checked + .toggle-sl::after { transform: translateX(18px); background: #000; }
+
+  /* ── Scrollbar ── */
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
+
+  /* ── Offices grid ── */
+  .offices-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .office-card { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--r2); overflow: hidden; }
+  .office-card-head { padding: 14px 16px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; font-size: 13px; font-weight: 500; }
+  .office-add { border: 1px dashed var(--border); background: none; display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 8px; cursor: pointer; min-height: 160px; transition: all .2s; }
+  .office-add:hover { border-color: var(--gold); }
+  .office-add-icon { font-size: 24px; color: var(--text3); }
+  .office-add-text { font-size: 12px; color: var(--text3); }
+
+  /* ── Empty state ── */
+  .empty { padding: 48px 24px; text-align: center; color: var(--text3); }
+  .empty-icon { font-size: 32px; margin-bottom: 12px; opacity: .3; }
+
+  /* ── Connection indicator ── */
+  .conn-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--green); display: inline-block; margin-right: 6px; animation: pulse 2s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+</style>
+</head>
+<body>
+
+<div class="shell">
+
+  <!-- ═══ SIDEBAR ═══ -->
+  <aside class="sidebar">
+    <div class="brand">
+      <img src="logo.png" alt="Asset Vault BI" class="brand-img">
+      <div class="brand-sub">Admin Portal</div>
+    </div>
+
+    <nav class="nav">
+      <div class="nav-label">Overview</div>
+      <div class="nav-item active" onclick="nav('dashboard',this)">
+        <span class="icon">◈</span> Dashboard
+      </div>
+
+      <div class="nav-label">Management</div>
+      <div class="nav-item" onclick="nav('claims',this)">
+        <span class="icon">◎</span> Claims
+        <span class="nav-badge" id="nb-claims">12</span>
+      </div>
+      <div class="nav-item" onclick="nav('training',this)">
+        <span class="icon">◇</span> Agent Training
+        <span class="nav-badge" id="nb-training">4</span>
+      </div>
+      <div class="nav-item" onclick="nav('careers',this)">
+        <span class="icon">◻</span> Careers
+      </div>
+      <div class="nav-item" onclick="nav('offices',this)">
+        <span class="icon">◉</span> Offices
+      </div>
+
+      <div class="nav-label">System</div>
+      <div class="nav-item" onclick="nav('settings',this)">
+        <span class="icon">⊙</span> Settings
+      </div>
+    </nav>
+
+    <div class="sidebar-footer">
+      <div class="admin-row">
+        <div class="admin-avatar">A</div>
+        <div>
+          <div class="admin-name">Administrator</div>
+          <div class="admin-role">Super Admin</div>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ═══ MAIN ═══ -->
+  <div class="main">
+
+    <!-- ══ DASHBOARD ══ -->
+    <div class="section active" id="sec-dashboard">
+      <div class="topbar">
+        <div class="topbar-left">
+          <h1>Dashboard</h1>
+          <p>Asset Vault BI &mdash; Overview &amp; Analytics</p>
+        </div>
+        <div class="topbar-right">
+          <select class="btn" id="period-select" onchange="updateCharts()">
+            <option value="30">Last 30 days</option>
+            <option value="90">Last 90 days</option>
+            <option value="365">This year</option>
+          </select>
+          <button class="btn btn-primary">Export Report</button>
+        </div>
+      </div>
+      <div class="content">
+
+        <!-- Stats -->
+        <div class="stats-grid">
+          <div class="stat-card gold">
+            <div class="stat-icon">◎</div>
+            <div class="stat-label">Total Claims</div>
+            <div class="stat-value gold">247</div>
+            <div class="stat-trend"><span>↑ 18</span> this month</div>
+          </div>
+          <div class="stat-card blue">
+            <div class="stat-icon">⏳</div>
+            <div class="stat-label">Pending Review</div>
+            <div class="stat-value blue">12</div>
+            <div class="stat-trend">Awaiting action</div>
+          </div>
+          <div class="stat-card green">
+            <div class="stat-icon">◇</div>
+            <div class="stat-label">Active Agents</div>
+            <div class="stat-value green">31</div>
+            <div class="stat-trend"><span>4</span> in training now</div>
+          </div>
+          <div class="stat-card purple">
+            <div class="stat-icon">◉</div>
+            <div class="stat-label">Jurisdictions</div>
+            <div class="stat-value purple">19</div>
+            <div class="stat-trend">Countries active</div>
+          </div>
+        </div>
+
+        <!-- Charts row 1 -->
+        <div class="charts-row">
+          <!-- Line chart: claims over time -->
+          <div class="chart-card wide">
+            <div class="chart-title">Claims submitted over time <span id="period-label">Last 30 days</span></div>
+            <div class="chart-wrap" style="height:200px">
+              <canvas id="lineChart"></canvas>
+            </div>
+          </div>
+
+          <!-- Donut: by status -->
+          <div class="chart-card">
+            <div class="chart-title">Claims by status</div>
+            <div class="chart-wrap" style="height:140px">
+              <canvas id="donutChart"></canvas>
+            </div>
+            <div class="donut-legend">
+              <div class="legend-row"><div class="legend-dot" style="background:#c9a227"></div>New<div class="legend-val">50</div></div>
+              <div class="legend-row"><div class="legend-dot" style="background:#388bfd"></div>In Review<div class="legend-val">37</div></div>
+              <div class="legend-row"><div class="legend-dot" style="background:#3fb950"></div>Active<div class="legend-val">40</div></div>
+              <div class="legend-row"><div class="legend-dot" style="background:#6e7681"></div>Closed<div class="legend-val">120</div></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Charts row 2 -->
+        <div class="charts-row">
+          <!-- Bar: by asset type -->
+          <div class="chart-card">
+            <div class="chart-title">By asset type</div>
+            <div class="mini-bars">
+              <div class="mini-bar-row"><span class="mini-bar-label">Dormant bank accounts</span><div class="mini-bar-track"><div class="mini-bar-fill" style="width:82%;background:var(--gold)"></div></div><span class="mini-bar-val">82</span></div>
+              <div class="mini-bar-row"><span class="mini-bar-label">Foreclosure surplus</span><div class="mini-bar-track"><div class="mini-bar-fill" style="width:62%;background:var(--blue)"></div></div><span class="mini-bar-val">61</span></div>
+              <div class="mini-bar-row"><span class="mini-bar-label">Insurance payouts</span><div class="mini-bar-track"><div class="mini-bar-fill" style="width:48%;background:var(--green)"></div></div><span class="mini-bar-val">47</span></div>
+              <div class="mini-bar-row"><span class="mini-bar-label">Pension arrears</span><div class="mini-bar-track"><div class="mini-bar-fill" style="width:35%;background:var(--orange)"></div></div><span class="mini-bar-val">35</span></div>
+              <div class="mini-bar-row"><span class="mini-bar-label">Unclaimed inheritance</span><div class="mini-bar-track"><div class="mini-bar-fill" style="width:22%;background:var(--purple)"></div></div><span class="mini-bar-val">22</span></div>
+            </div>
+          </div>
+
+          <!-- Bar: by country -->
+          <div class="chart-card">
+            <div class="chart-title">By country</div>
+            <div class="chart-wrap" style="height:180px">
+              <canvas id="barChart"></canvas>
+            </div>
+          </div>
+
+          <!-- Activity feed -->
+          <div class="chart-card">
+            <div class="chart-title">Recent activity</div>
+            <div class="activity-feed">
+              <div class="activity-item">
+                <div class="activity-dot-wrap"><div class="activity-dot" style="background:var(--gold2)"></div><div class="activity-line"></div></div>
+                <div class="activity-body"><div class="activity-title"><strong>Thabo Mokoena</strong> submitted a claim</div><div class="activity-meta">South Africa &middot; Dormant bank account &middot; 2h ago</div></div>
+              </div>
+              <div class="activity-item">
+                <div class="activity-dot-wrap"><div class="activity-dot" style="background:var(--blue2)"></div><div class="activity-line"></div></div>
+                <div class="activity-body"><div class="activity-title">Claim <strong>#0231</strong> moved to In Review</div><div class="activity-meta">Sarah Williams &middot; 5h ago</div></div>
+              </div>
+              <div class="activity-item">
+                <div class="activity-dot-wrap"><div class="activity-dot" style="background:var(--gold2)"></div><div class="activity-line"></div></div>
+                <div class="activity-body"><div class="activity-title"><strong>James Oduya</strong> enquired about training</div><div class="activity-meta">Nigeria &middot; Today</div></div>
+              </div>
+              <div class="activity-item">
+                <div class="activity-dot-wrap"><div class="activity-dot" style="background:var(--green)"></div><div class="activity-line"></div></div>
+                <div class="activity-body"><div class="activity-title">Claim <strong>#0219</strong> marked Active</div><div class="activity-meta">Maria Santos &middot; Portugal &middot; 2 days ago</div></div>
+              </div>
+              <div class="activity-item">
+                <div class="activity-dot-wrap"><div class="activity-dot" style="background:var(--text3)"></div><div class="activity-line"></div></div>
+                <div class="activity-body"><div class="activity-title">Claim <strong>#0201</strong> closed</div><div class="activity-meta">Pierre Laurent &middot; France &middot; 1 week ago</div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Recent claims table -->
+        <div class="table-card">
+          <div class="table-head">
+            <div class="table-head-title">Recent submissions</div>
+            <button class="btn" onclick="nav('claims',document.querySelector('[onclick*=claims]'))">View all &rarr;</button>
+          </div>
+          <table>
+            <thead><tr><th>Name</th><th>Country</th><th>Asset Type</th><th>Status</th><th>Date</th></tr></thead>
+            <tbody>
+              <tr><td class="name">Thabo Mokoena</td><td>🇿🇦 South Africa</td><td>Dormant bank account</td><td><span class="badge badge-new"><span class="badge-dot"></span>New</span></td><td class="muted">2h ago</td></tr>
+              <tr><td class="name">Sarah Williams</td><td>🇬🇧 United Kingdom</td><td>Insurance payout</td><td><span class="badge badge-review"><span class="badge-dot"></span>In Review</span></td><td class="muted">5h ago</td></tr>
+              <tr><td class="name">Kwame Asante</td><td>🇬🇭 Ghana</td><td>Foreclosure surplus</td><td><span class="badge badge-new"><span class="badge-dot"></span>New</span></td><td class="muted">Yesterday</td></tr>
+              <tr><td class="name">Maria Santos</td><td>🇵🇹 Portugal</td><td>Pension arrears</td><td><span class="badge badge-active"><span class="badge-dot"></span>Active</span></td><td class="muted">2 days ago</td></tr>
+              <tr><td class="name">Ahmed Al-Rashid</td><td>🇦🇪 UAE</td><td>Uncashed dividends</td><td><span class="badge badge-review"><span class="badge-dot"></span>In Review</span></td><td class="muted">3 days ago</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+      </div>
+    </div><!-- /dashboard -->
+
+    <!-- ══ CLAIMS ══ -->
+    <div class="section" id="sec-claims">
+      <div class="topbar">
+        <div class="topbar-left"><h1>Claims Management</h1><p>All Search &amp; Claim form submissions</p></div>
+        <div class="topbar-right">
+          <div class="search-box">
+            <span style="color:var(--text3)">⌕</span>
+            <input placeholder="Search name, email, country…" id="claim-search" oninput="renderClaims()">
+          </div>
+          <button class="btn">Export CSV</button>
+        </div>
+      </div>
+      <div class="content">
+        <div class="table-card">
+          <div class="filter-tabs">
+            <span class="ftab active" onclick="setFilter('all',this)">All (247)</span>
+            <span class="ftab" onclick="setFilter('new',this)">New (50)</span>
+            <span class="ftab" onclick="setFilter('review',this)">In Review (37)</span>
+            <span class="ftab" onclick="setFilter('active',this)">Active (40)</span>
+            <span class="ftab" onclick="setFilter('closed',this)">Closed (120)</span>
+          </div>
+          <table>
+            <thead><tr><th>Name</th><th>Email</th><th>Country</th><th>Asset Type</th><th>Status</th><th>Submitted</th><th></th></tr></thead>
+            <tbody id="claims-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ TRAINING ══ -->
+    <div class="section" id="sec-training">
+      <div class="topbar">
+        <div class="topbar-left"><h1>Agent Training</h1><p>Training programme enquiries</p></div>
+        <div class="topbar-right"><button class="btn">Export</button></div>
+      </div>
+      <div class="content">
+        <div class="charts-row" style="grid-template-columns:1fr 1fr 1fr">
+          <div class="stat-card gold"><div class="stat-label">Total Enquiries</div><div class="stat-value gold">38</div></div>
+          <div class="stat-card blue"><div class="stat-label">Currently Enrolled</div><div class="stat-value blue">12</div></div>
+          <div class="stat-card green"><div class="stat-label">Completed</div><div class="stat-value green">22</div></div>
+        </div>
+        <div class="table-card">
+          <div class="table-head"><div class="table-head-title">Training Applications</div></div>
+          <table>
+            <thead><tr><th>Name</th><th>Email</th><th>Country</th><th>Message</th><th>Status</th><th>Date</th><th></th></tr></thead>
+            <tbody>
+              <tr><td class="name">James Oduya</td><td class="muted"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="583276373c2d2139183d35393134763b3735">[email&#160;protected]</a></td><td>🇳🇬 Nigeria</td><td class="muted" style="max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Interested in asset identification module…</td><td><span class="badge badge-new"><span class="badge-dot"></span>New</span></td><td class="muted">Today</td><td><button class="act-btn" onclick="openTrainModal('James Oduya','j.oduya@email.com','Nigeria','Interested in the next training cohort for asset identification and database search techniques.')">View</button></td></tr>
+              <tr><td class="name">Priya Nair</td><td class="muted"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="5c2c2e35253d72321c3b313d3530723f3331">[email&#160;protected]</a></td><td>🇮🇳 India</td><td class="muted" style="max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Looking to enrol in legal frameworks course…</td><td><span class="badge badge-review"><span class="badge-dot"></span>In Review</span></td><td class="muted">Yesterday</td><td><button class="act-btn">View</button></td></tr>
+              <tr><td class="name">David Mensah</td><td class="muted"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="4b2f65262e25382a230b2824393b652c23">[email&#160;protected]</a></td><td>🇬🇭 Ghana</td><td class="muted" style="max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Corporate team training inquiry…</td><td><span class="badge badge-pending"><span class="badge-dot"></span>Pending</span></td><td class="muted">3 days ago</td><td><button class="act-btn">View</button></td></tr>
+              <tr><td class="name">Claire Dubois</td><td class="muted"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="bbd8d7dad2c9de95dffbd4cecfd7d4d4d095ddc9">[email&#160;protected]</a></td><td>🇫🇷 France</td><td class="muted" style="max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Ethics and confidentiality module…</td><td><span class="badge badge-active"><span class="badge-dot"></span>Enrolled</span></td><td class="muted">1 week ago</td><td><button class="act-btn">View</button></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ CAREERS ══ -->
+    <div class="section" id="sec-careers">
+      <div class="topbar">
+        <div class="topbar-left"><h1>Careers</h1><p>Job postings &amp; applications</p></div>
+        <div class="topbar-right"><button class="btn btn-primary" onclick="openJobModal()">+ Post Job</button></div>
+      </div>
+      <div class="content">
+        <div class="table-card" style="margin-bottom:16px">
+          <div class="table-head"><div class="table-head-title">Active Positions</div></div>
+          <div class="empty"><div class="empty-icon">◻</div><p>No open positions &middot; <span style="color:var(--gold2);cursor:pointer" onclick="openJobModal()">Post a job &rarr;</span></p></div>
+        </div>
+        <div class="table-card">
+          <div class="table-head"><div class="table-head-title">Speculative Applications</div></div>
+          <div class="empty"><div class="empty-icon">◎</div><p>No applications yet.</p></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ OFFICES ══ -->
+    <div class="section" id="sec-offices">
+      <div class="topbar">
+        <div class="topbar-left"><h1>Global Offices</h1><p>Office locations &amp; contacts</p></div>
+        <div class="topbar-right"><button class="btn btn-primary">+ Add Office</button></div>
+      </div>
+      <div class="content">
+        <div class="offices-grid">
+          <div class="office-card">
+            <div class="office-card-head">🇿🇦 Johannesburg, South Africa <button class="act-btn">Edit</button></div>
+            <div class="settings-row"><div><div class="s-label">Phone</div><div class="s-sub">+27 11 000 0000</div></div></div>
+            <div class="settings-row"><div><div class="s-label">Email</div><div class="s-sub"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="542e351435272731202235213820363d7a373b39">[email&#160;protected]</a></div></div></div>
+            <div class="settings-row"><div class="s-label">Status</div><span class="badge badge-active"><span class="badge-dot"></span>Active</span></div>
+          </div>
+          <div class="office-card">
+            <div class="office-card-head">🇬🇧 London, United Kingdom <button class="act-btn">Edit</button></div>
+            <div class="settings-row"><div><div class="s-label">Phone</div><div class="s-sub">+44 20 0000 0000</div></div></div>
+            <div class="settings-row"><div><div class="s-label">Email</div><div class="s-sub"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="3346587352404056474552465f47515a1d505c5e">[email&#160;protected]</a></div></div></div>
+            <div class="settings-row"><div class="s-label">Status</div><span class="badge badge-active"><span class="badge-dot"></span>Active</span></div>
+          </div>
+          <div class="office-card">
+            <div class="office-card-head">🇺🇸 New York, United States <button class="act-btn">Edit</button></div>
+            <div class="settings-row"><div><div class="s-label">Phone</div><div class="s-sub">+1 212 000 0000</div></div></div>
+            <div class="settings-row"><div><div class="s-label">Email</div><div class="s-sub"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="d9acaa99b8aaaabcadafb8acb5adbbb0f7bab6b4">[email&#160;protected]</a></div></div></div>
+            <div class="settings-row"><div class="s-label">Status</div><span class="badge badge-review"><span class="badge-dot"></span>Setup</span></div>
+          </div>
+          <div class="office-card office-add" onclick="alert('Add Office form coming soon!')">
+            <div class="office-add-icon">+</div>
+            <div class="office-add-text">Add new office</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ SETTINGS ══ -->
+    <div class="section" id="sec-settings">
+      <div class="topbar">
+        <div class="topbar-left"><h1>Settings</h1><p>System configuration</p></div>
+      </div>
+      <div class="content">
+        <div class="settings-block">
+          <div class="settings-block-head">Database Connection</div>
+          <div class="settings-row">
+            <div><div class="s-label">MongoDB URI</div><div class="s-sub" style="font-family:monospace;font-size:11px">mongodb+srv://***@cluster0.mongodb.net/assetvaultbi</div></div>
+            <button class="act-btn">Edit</button>
+          </div>
+          <div class="settings-row">
+            <div class="s-label"><span class="conn-dot"></span>Connection status</div>
+            <span class="badge badge-active"><span class="badge-dot"></span>Connected</span>
+          </div>
+        </div>
+        <div class="settings-block">
+          <div class="settings-block-head">Email Notifications</div>
+          <div class="settings-row"><div><div class="s-label">Notify on new claim</div><div class="s-sub">Email alert when a claim is submitted</div></div><label class="toggle"><input type="checkbox" checked><span class="toggle-sl"></span></label></div>
+          <div class="settings-row"><div><div class="s-label">Notify on training enquiry</div><div class="s-sub">Email alert when someone enquires about training</div></div><label class="toggle"><input type="checkbox" checked><span class="toggle-sl"></span></label></div>
+          <div class="settings-row"><div><div class="s-label">Weekly digest</div><div class="s-sub">Summary report every Monday morning</div></div><label class="toggle"><input type="checkbox"><span class="toggle-sl"></span></label></div>
+        </div>
+        <div class="settings-block">
+          <div class="settings-block-head">API Configuration</div>
+          <div class="settings-row"><div><div class="s-label">Backend API URL</div><div class="s-sub">https://api.assetvaultbi.com/v1</div></div><button class="act-btn">Edit</button></div>
+          <div class="settings-row"><div><div class="s-label">SMTP (Gmail)</div><div class="s-sub">smtp.gmail.com &middot; Configured</div></div><button class="act-btn">Edit</button></div>
+        </div>
+        <div class="settings-block">
+          <div class="settings-block-head">Admin Accounts</div>
+          <div class="settings-row"><div><div class="s-label"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="1f7e7b7276715f7e6c6c7a6b697e6a736b7d76317c7072">[email&#160;protected]</a></div><div class="s-sub">Super Admin &middot; Last login: today</div></div><span class="badge badge-active"><span class="badge-dot"></span>Active</span></div>
+          <div class="settings-row"><div class="s-label">Invite a new administrator</div><button class="btn btn-primary" style="font-size:11px;padding:4px 10px">+ Invite</button></div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /main -->
+</div><!-- /shell -->
+
+<!-- ═══ MODAL ═══ -->
+<div class="modal-backdrop" id="modal" onclick="if(event.target===this)closeModal()">
+  <div class="modal">
+    <div class="modal-top">
+      <h3 id="modal-title">Detail</h3>
+      <button class="modal-close" onclick="closeModal()">&#x2715;</button>
+    </div>
+    <div class="modal-body" id="modal-body"></div>
+    <div class="modal-foot">
+      <button class="btn btn-danger" onclick="closeModal()">Delete</button>
+      <button class="btn" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="closeModal()">Save Changes</button>
+    </div>
+  </div>
+</div>
+
+<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
+/* ── Data ── */
+const CLAIMS = [
+  {name:'Thabo Mokoena',  email:'t.mokoena@gmail.com',    country:'🇿🇦 South Africa',  asset:'Dormant bank account',  status:'new',    date:'2h ago',     phone:'+27 71 000 0000', address:'Soweto, Johannesburg',    notes:''},
+  {name:'Sarah Williams', email:'s.williams@email.co.uk', country:'🇬🇧 United Kingdom',asset:'Insurance payout',      status:'review', date:'5h ago',     phone:'+44 7700 000000', address:'Manchester, England',      notes:''},
+  {name:'Kwame Asante',   email:'k.asante@ghana.com',     country:'🇬🇭 Ghana',          asset:'Foreclosure surplus',   status:'new',    date:'Yesterday',  phone:'+233 24 000 000', address:'Accra, Ghana',             notes:''},
+  {name:'Maria Santos',   email:'maria.s@sapo.pt',        country:'🇵🇹 Portugal',       asset:'Pension arrears',       status:'active', date:'2 days ago', phone:'+351 91 000 000', address:'Lisbon, Portugal',         notes:'KYC complete'},
+  {name:'Ahmed Al-Rashid',email:'ahmed.r@email.ae',       country:'🇦🇪 UAE',            asset:'Uncashed dividends',    status:'review', date:'3 days ago', phone:'+971 50 000 000', address:'Dubai, UAE',               notes:''},
+  {name:'Nomsa Dlamini',  email:'n.dlamini@email.co.za',  country:'🇿🇦 South Africa',  asset:'Unclaimed inheritance', status:'new',    date:'4 days ago', phone:'+27 82 000 0000', address:'Durban, KwaZulu-Natal',    notes:''},
+  {name:'Pierre Laurent', email:'p.laurent@free.fr',      country:'🇫🇷 France',         asset:'Dormant savings',       status:'closed', date:'1 week ago', phone:'+33 6 00 00 0000',address:'Paris, France',            notes:'Resolved'},
+  {name:'Chinwe Obi',     email:'c.obi@yahoo.com',        country:'🇳🇬 Nigeria',        asset:'Insurance payout',      status:'new',    date:'1 week ago', phone:'+234 80 000 0000',address:'Lagos, Nigeria',           notes:''},
+  {name:'Yuki Tanaka',    email:'y.tanaka@mail.jp',       country:'🇯🇵 Japan',          asset:'Uncashed cheque',       status:'review', date:'10 days ago',phone:'+81 90 000 0000', address:'Tokyo, Japan',             notes:''},
+  {name:'Amara Diallo',   email:'a.diallo@mail.sn',       country:'🇸🇳 Senegal',        asset:'Pension arrears',       status:'active', date:'2 weeks ago',phone:'+221 77 000 000', address:'Dakar, Senegal',           notes:''},
+];
+
+let activeFilter = 'all';
+
+/* ── Navigation ── */
+function nav(id, el) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.getElementById('sec-' + id).classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  if (el) el.classList.add('active');
+  if (id === 'claims') renderClaims();
+}
+
+/* ── Claims filter + render ── */
+function setFilter(f, el) {
+  activeFilter = f;
+  document.querySelectorAll('.ftab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  renderClaims();
+}
+
+function renderClaims() {
+  const q = (document.getElementById('claim-search').value || '').toLowerCase();
+  const rows = CLAIMS.filter(c => {
+    const matchF = activeFilter === 'all' || c.status === activeFilter;
+    const matchQ = !q || c.name.toLowerCase().includes(q) || c.email.toLowerCase().includes(q) || c.country.toLowerCase().includes(q);
+    return matchF && matchQ;
+  });
+  const statusLabel = {new:'New', review:'In Review', active:'Active', closed:'Closed', pending:'Pending'};
+  document.getElementById('claims-tbody').innerHTML = rows.length ? rows.map(c => `
+    <tr>
+      <td class="name">${c.name}</td>
+      <td class="muted">${c.email}</td>
+      <td>${c.country}</td>
+      <td>${c.asset}</td>
+      <td><span class="badge badge-${c.status}"><span class="badge-dot"></span>${statusLabel[c.status]||c.status}</span></td>
+      <td class="muted">${c.date}</td>
+      <td><button class="act-btn" onclick='openClaimModal(${JSON.stringify(c)})'>View</button></td>
+    </tr>`).join('')
+  : `<tr><td colspan="7" class="empty" style="padding:32px">No results match your filter.</td></tr>`;
+}
+
+/* ── Modals ── */
+function openClaimModal(c) {
+  document.getElementById('modal-title').textContent = 'Claim — ' + c.name;
+  document.getElementById('modal-body').innerHTML = `
+    <div class="field-grid">
+      <div class="field"><label>First name</label><div class="field-val">${c.name.split(' ')[0]}</div></div>
+      <div class="field"><label>Last name</label><div class="field-val">${c.name.split(' ').slice(1).join(' ')}</div></div>
+      <div class="field"><label>Email</label><div class="field-val">${c.email}</div></div>
+      <div class="field"><label>Phone</label><div class="field-val">${c.phone||'—'}</div></div>
+      <div class="field"><label>Country</label><div class="field-val">${c.country}</div></div>
+      <div class="field"><label>Asset type</label><div class="field-val">${c.asset}</div></div>
+      <div class="field full"><label>Address</label><div class="field-val">${c.address||'—'}</div></div>
+      <div class="field"><label>Status</label>
+        <select>
+          <option ${c.status==='new'?'selected':''}>New</option>
+          <option ${c.status==='review'?'selected':''}>In Review</option>
+          <option ${c.status==='active'?'selected':''}>Active</option>
+          <option ${c.status==='closed'?'selected':''}>Closed</option>
+        </select>
+      </div>
+      <div class="field"><label>Submitted</label><div class="field-val">${c.date}</div></div>
+      <div class="field full"><label>Internal notes</label><textarea placeholder="Add notes…">${c.notes||''}</textarea></div>
+    </div>`;
+  document.getElementById('modal').classList.add('open');
+}
+
+function openTrainModal(name, email, country, msg) {
+  document.getElementById('modal-title').textContent = 'Training Application — ' + name;
+  document.getElementById('modal-body').innerHTML = `
+    <div class="field-grid">
+      <div class="field"><label>Name</label><div class="field-val">${name}</div></div>
+      <div class="field"><label>Country</label><div class="field-val">${country}</div></div>
+      <div class="field full"><label>Email</label><div class="field-val">${email}</div></div>
+      <div class="field full"><label>Message</label><div class="field-val" style="min-height:60px">${msg}</div></div>
+      <div class="field"><label>Status</label>
+        <select><option>New</option><option>In Review</option><option>Enrolled</option><option>Declined</option></select>
+      </div>
+      <div class="field full"><label>Internal notes</label><textarea placeholder="Add notes…"></textarea></div>
+    </div>`;
+  document.getElementById('modal').classList.add('open');
+}
+
+function openJobModal() {
+  document.getElementById('modal-title').textContent = 'Post New Job';
+  document.getElementById('modal-body').innerHTML = `
+    <div class="field-grid">
+      <div class="field full"><label>Job title</label><input type="text" placeholder="e.g. Senior Asset Recovery Specialist"></div>
+      <div class="field"><label>Department</label><select><option>Operations</option><option>Legal</option><option>Technology</option><option>Training</option></select></div>
+      <div class="field"><label>Location</label><input type="text" placeholder="e.g. Johannesburg / Remote"></div>
+      <div class="field full"><label>Description</label><textarea style="min-height:120px" placeholder="Role description…"></textarea></div>
+    </div>`;
+  document.getElementById('modal').classList.add('open');
+}
+
+function closeModal() {
+  document.getElementById('modal').classList.remove('open');
+}
+
+/* ── Charts ── */
+Chart.defaults.color = '#8b949e';
+Chart.defaults.borderColor = '#30363d';
+Chart.defaults.font.family = "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
+Chart.defaults.font.size = 11;
+
+const DATASETS = {
+  30:  { labels: ['Apr 6','Apr 8','Apr 10','Apr 12','Apr 14','Apr 16','Apr 18','Apr 20','Apr 22','Apr 24','Apr 26','Apr 28','Apr 30','May 2','May 4'], data: [3,5,4,8,6,10,7,9,5,12,8,11,6,9,14] },
+  90:  { labels: ['Feb','Mar W1','Mar W2','Mar W3','Mar W4','Apr W1','Apr W2','Apr W3','Apr W4','May W1','May W2','May W3','May W4'], data: [22,18,25,30,28,35,32,40,38,45,42,50,48] },
+  365: { labels: ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'], data: [12,18,22,28,35,30,40,38,45,50,42,55] },
+};
+
+let lineChart, donutChart, barChart;
+
+function buildLineChart() {
+  const ctx = document.getElementById('lineChart').getContext('2d');
+  const ds = DATASETS[30];
+  lineChart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: ds.labels,
+      datasets: [{
+        label: 'Claims',
+        data: ds.data,
+        borderColor: '#c9a227',
+        backgroundColor: 'rgba(201,162,39,0.08)',
+        borderWidth: 2,
+        pointRadius: 3,
+        pointBackgroundColor: '#c9a227',
+        fill: true,
+        tension: 0.4,
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false }, tooltip: { backgroundColor: '#21262d', borderColor: '#30363d', borderWidth: 1, titleColor: '#e6edf3', bodyColor: '#8b949e' } },
+      scales: {
+        x: { grid: { color: 'rgba(48,54,61,0.5)' }, ticks: { maxTicksLimit: 8 } },
+        y: { grid: { color: 'rgba(48,54,61,0.5)' }, beginAtZero: true, ticks: { stepSize: 5 } }
+      }
+    }
+  });
+}
+
+function buildDonutChart() {
+  const ctx = document.getElementById('donutChart').getContext('2d');
+  donutChart = new Chart(ctx, {
+    type: 'doughnut',
+    data: {
+      labels: ['New','In Review','Active','Closed'],
+      datasets: [{ data: [50,37,40,120], backgroundColor: ['#c9a227','#388bfd','#3fb950','#484f58'], borderWidth: 0, hoverOffset: 4 }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false, cutout: '72%',
+      plugins: { legend: { display: false }, tooltip: { backgroundColor: '#21262d', borderColor: '#30363d', borderWidth: 1, titleColor: '#e6edf3', bodyColor: '#8b949e' } }
+    }
+  });
+}
+
+function buildBarChart() {
+  const ctx = document.getElementById('barChart').getContext('2d');
+  barChart = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: ['S. Africa','UK','Ghana','Nigeria','Portugal','UAE','France','India'],
+      datasets: [{ label: 'Claims', data: [
