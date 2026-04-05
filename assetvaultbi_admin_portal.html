@@ -1,0 +1,653 @@
+<!DOCTYPE html>
+<html>
+<head>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  :root{
+    --bg:#0d1117;--bg2:#161b22;--bg3:#21262d;--bg4:#2d333b;
+    --border:#30363d;--border2:#484f58;
+    --text:#e6edf3;--text2:#8b949e;--text3:#6e7681;
+    --gold:#c9a227;--gold2:#e3b84a;--gold3:#f5d87e;
+    --blue:#388bfd;--blue2:#58a6ff;
+    --green:#3fb950;--red:#f85149;--orange:#d29922;
+    --radius:8px;--radius2:12px;
+  }
+  body{background:var(--bg);color:var(--text);font-family:var(--font-sans,'system-ui',sans-serif);font-size:14px;line-height:1.6;min-height:600px}
+  
+  /* Layout */
+  .shell{display:flex;min-height:600px}
+  .sidebar{width:220px;background:var(--bg2);border-right:1px solid var(--border);display:flex;flex-direction:column;flex-shrink:0}
+  .main{flex:1;overflow:hidden;display:flex;flex-direction:column}
+  
+  /* Sidebar */
+  .brand{padding:20px 16px 16px;border-bottom:1px solid var(--border)}
+  .brand-name{font-size:13px;font-weight:500;color:var(--gold2);letter-spacing:.5px}
+  .brand-sub{font-size:11px;color:var(--text3);margin-top:2px}
+  .nav{padding:12px 8px;flex:1}
+  .nav-section{font-size:10px;font-weight:500;color:var(--text3);letter-spacing:.8px;padding:8px 8px 4px;text-transform:uppercase}
+  .nav-item{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:var(--radius);cursor:pointer;color:var(--text2);font-size:13px;transition:all .15s;margin-bottom:2px}
+  .nav-item:hover{background:var(--bg3);color:var(--text)}
+  .nav-item.active{background:rgba(201,162,39,.12);color:var(--gold2)}
+  .nav-badge{margin-left:auto;background:var(--gold);color:#000;font-size:10px;font-weight:600;padding:1px 6px;border-radius:10px;min-width:18px;text-align:center}
+  .nav-icon{font-size:15px;width:18px;text-align:center;flex-shrink:0}
+  .sidebar-footer{padding:12px 16px;border-top:1px solid var(--border)}
+  .admin-info{display:flex;align-items:center;gap:10px}
+  .admin-avatar{width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,var(--gold),var(--gold2));display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;color:#000}
+  .admin-name{font-size:12px;color:var(--text);font-weight:500}
+  .admin-role{font-size:10px;color:var(--text3)}
+  
+  /* Topbar */
+  .topbar{padding:14px 24px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;background:var(--bg2)}
+  .topbar-title{font-size:16px;font-weight:500;color:var(--text)}
+  .topbar-meta{font-size:12px;color:var(--text3)}
+  .topbar-actions{display:flex;gap:8px;align-items:center}
+  .btn{padding:6px 14px;border-radius:var(--radius);border:1px solid var(--border);background:var(--bg3);color:var(--text2);font-size:12px;cursor:pointer;transition:all .15s;font-family:inherit}
+  .btn:hover{border-color:var(--border2);color:var(--text)}
+  .btn-primary{background:var(--gold);border-color:var(--gold);color:#000;font-weight:500}
+  .btn-primary:hover{background:var(--gold2);border-color:var(--gold2);color:#000}
+  .btn-danger{background:rgba(248,81,73,.15);border-color:var(--red);color:var(--red)}
+  
+  /* Content */
+  .content{padding:20px 24px;overflow-y:auto;flex:1}
+  
+  /* Stats row */
+  .stats-row{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px}
+  .stat-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius2);padding:16px}
+  .stat-label{font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.6px;margin-bottom:8px}
+  .stat-value{font-size:28px;font-weight:600;color:var(--text);line-height:1}
+  .stat-sub{font-size:11px;color:var(--text3);margin-top:4px}
+  .stat-trend{font-size:11px;margin-top:4px}
+  .trend-up{color:var(--green)}
+  .trend-new{color:var(--gold2)}
+  
+  /* Table */
+  .table-wrap{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius2);overflow:hidden}
+  .table-header{padding:14px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+  .table-title{font-size:13px;font-weight:500;color:var(--text)}
+  .search-box{display:flex;align-items:center;gap:8px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);padding:5px 10px}
+  .search-box input{background:none;border:none;outline:none;color:var(--text);font-size:12px;width:160px;font-family:inherit}
+  .search-box input::placeholder{color:var(--text3)}
+  .filter-tabs{display:flex;gap:4px;padding:10px 16px;border-bottom:1px solid var(--border)}
+  .filter-tab{padding:4px 10px;border-radius:20px;font-size:11px;cursor:pointer;color:var(--text3);transition:all .15s}
+  .filter-tab:hover{color:var(--text)}
+  .filter-tab.active{background:rgba(201,162,39,.15);color:var(--gold2)}
+  
+  table{width:100%;border-collapse:collapse}
+  th{padding:10px 16px;font-size:11px;font-weight:500;color:var(--text3);text-align:left;border-bottom:1px solid var(--border);text-transform:uppercase;letter-spacing:.5px}
+  td{padding:12px 16px;border-bottom:1px solid rgba(48,54,61,.5);font-size:13px;color:var(--text2)}
+  tr:last-child td{border-bottom:none}
+  tr:hover td{background:rgba(33,38,45,.6)}
+  
+  .status-badge{display:inline-flex;align-items:center;gap:4px;padding:3px 8px;border-radius:20px;font-size:11px;font-weight:500}
+  .status-new{background:rgba(201,162,39,.15);color:var(--gold2)}
+  .status-review{background:rgba(56,139,253,.15);color:var(--blue2)}
+  .status-active{background:rgba(63,185,80,.15);color:var(--green)}
+  .status-closed{background:rgba(110,118,129,.15);color:var(--text3)}
+  .status-pending{background:rgba(210,153,34,.15);color:var(--orange)}
+  
+  .dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+  .dot-new{background:var(--gold2)}
+  .dot-review{background:var(--blue2)}
+  .dot-active{background:var(--green)}
+  .dot-closed{background:var(--text3)}
+  .dot-pending{background:var(--orange)}
+  
+  .action-btn{padding:4px 8px;border-radius:4px;border:1px solid var(--border);background:none;color:var(--text3);font-size:11px;cursor:pointer;transition:all .15s;font-family:inherit}
+  .action-btn:hover{border-color:var(--gold);color:var(--gold2)}
+  
+  .name-cell{color:var(--text);font-weight:500}
+  .country-flag{margin-right:4px}
+  
+  /* Modal */
+  .modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.7);display:flex;align-items:center;justify-content:center;z-index:100;opacity:0;pointer-events:none;transition:opacity .2s}
+  .modal-backdrop.open{opacity:1;pointer-events:all}
+  .modal{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius2);width:520px;max-width:90vw;max-height:80vh;overflow-y:auto;transform:translateY(12px);transition:transform .2s}
+  .modal-backdrop.open .modal{transform:translateY(0)}
+  .modal-head{padding:18px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+  .modal-head h3{font-size:15px;font-weight:500;color:var(--text)}
+  .modal-close{background:none;border:none;color:var(--text3);cursor:pointer;font-size:18px;padding:0 4px;line-height:1}
+  .modal-close:hover{color:var(--text)}
+  .modal-body{padding:20px}
+  .field-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}
+  .field{display:flex;flex-direction:column;gap:4px}
+  .field label{font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px}
+  .field .val{font-size:13px;color:var(--text);background:var(--bg3);padding:8px 10px;border-radius:var(--radius);border:1px solid var(--border)}
+  .field.full{grid-column:1/-1}
+  .status-select{background:var(--bg3);border:1px solid var(--border);color:var(--text);border-radius:var(--radius);padding:6px 10px;font-size:13px;font-family:inherit;cursor:pointer;width:100%}
+  .notes-area{background:var(--bg3);border:1px solid var(--border);color:var(--text);border-radius:var(--radius);padding:8px 10px;font-size:13px;font-family:inherit;width:100%;resize:vertical;min-height:80px}
+  .modal-foot{padding:14px 20px;border-top:1px solid var(--border);display:flex;gap:8px;justify-content:flex-end}
+  
+  /* Section toggle */
+  .section{display:none}
+  .section.active{display:block}
+  
+  /* Chart mini */
+  .chart-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px}
+  .chart-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius2);padding:16px}
+  .chart-label{font-size:12px;font-weight:500;color:var(--text2);margin-bottom:12px}
+  .bar-chart{display:flex;flex-direction:column;gap:8px}
+  .bar-row{display:flex;align-items:center;gap:8px}
+  .bar-name{font-size:11px;color:var(--text3);width:80px;text-align:right;flex-shrink:0}
+  .bar-track{flex:1;background:var(--bg3);border-radius:4px;height:8px;overflow:hidden}
+  .bar-fill{height:100%;border-radius:4px;background:var(--gold);transition:width .6s ease}
+  .bar-val{font-size:11px;color:var(--text3);width:30px;text-align:right;flex-shrink:0}
+  
+  .donut-wrap{display:flex;align-items:center;gap:16px}
+  .donut-svg{flex-shrink:0}
+  .donut-legend{display:flex;flex-direction:column;gap:8px}
+  .legend-item{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text2)}
+  .legend-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+  
+  /* Empty */
+  .empty{padding:40px;text-align:center;color:var(--text3);font-size:13px}
+  
+  /* Settings */
+  .settings-section{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius2);margin-bottom:16px}
+  .settings-section-head{padding:14px 16px;border-bottom:1px solid var(--border);font-size:13px;font-weight:500;color:var(--text)}
+  .settings-row{padding:12px 16px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid rgba(48,54,61,.4)}
+  .settings-row:last-child{border-bottom:none}
+  .settings-row-label{font-size:13px;color:var(--text2)}
+  .settings-row-sub{font-size:11px;color:var(--text3);margin-top:2px}
+  .toggle{position:relative;width:36px;height:20px;flex-shrink:0}
+  .toggle input{opacity:0;width:0;height:0;position:absolute}
+  .toggle-slider{position:absolute;inset:0;background:var(--bg4);border-radius:10px;cursor:pointer;transition:.2s}
+  .toggle-slider::after{content:'';position:absolute;width:14px;height:14px;left:3px;top:3px;background:var(--text3);border-radius:50%;transition:.2s}
+  .toggle input:checked + .toggle-slider{background:var(--gold)}
+  .toggle input:checked + .toggle-slider::after{transform:translateX(16px);background:#000}
+</style>
+
+<div class="shell">
+  <!-- Sidebar -->
+  <div class="sidebar">
+    <div class="brand">
+      <div class="brand-name">⬡ ASSET VAULT BI</div>
+      <div class="brand-sub">Admin Portal</div>
+    </div>
+    <div class="nav">
+      <div class="nav-section">Overview</div>
+      <div class="nav-item active" onclick="setView('dashboard',this)">
+        <span class="nav-icon">◈</span> Dashboard
+      </div>
+      <div class="nav-section">Management</div>
+      <div class="nav-item" onclick="setView('claims',this)">
+        <span class="nav-icon">◎</span> Claims
+        <span class="nav-badge" id="claims-badge">12</span>
+      </div>
+      <div class="nav-item" onclick="setView('agents',this)">
+        <span class="nav-icon">◇</span> Agent Training
+        <span class="nav-badge" id="agents-badge">4</span>
+      </div>
+      <div class="nav-item" onclick="setView('careers',this)">
+        <span class="nav-icon">◻</span> Careers
+      </div>
+      <div class="nav-item" onclick="setView('offices',this)">
+        <span class="nav-icon">◉</span> Offices
+      </div>
+      <div class="nav-section">System</div>
+      <div class="nav-item" onclick="setView('settings',this)">
+        <span class="nav-icon">⊙</span> Settings
+      </div>
+    </div>
+    <div class="sidebar-footer">
+      <div class="admin-info">
+        <div class="admin-avatar">A</div>
+        <div>
+          <div class="admin-name">Admin</div>
+          <div class="admin-role">Super Admin</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Main -->
+  <div class="main">
+    <!-- Dashboard -->
+    <div class="section active" id="sec-dashboard">
+      <div class="topbar">
+        <div>
+          <div class="topbar-title">Dashboard</div>
+          <div class="topbar-meta">Asset Vault BI · Overview</div>
+        </div>
+        <div class="topbar-actions">
+          <button class="btn">Export CSV</button>
+          <button class="btn btn-primary">+ New Entry</button>
+        </div>
+      </div>
+      <div class="content">
+        <div class="stats-row">
+          <div class="stat-card">
+            <div class="stat-label">Total Claims</div>
+            <div class="stat-value">247</div>
+            <div class="stat-trend trend-up">↑ 18 this month</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Pending Review</div>
+            <div class="stat-value" style="color:var(--gold2)">12</div>
+            <div class="stat-trend trend-new">Awaiting action</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Active Agents</div>
+            <div class="stat-value" style="color:var(--green)">31</div>
+            <div class="stat-trend trend-up">4 in training</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Jurisdictions</div>
+            <div class="stat-value">19</div>
+            <div class="stat-trend" style="color:var(--text3)">Countries active</div>
+          </div>
+        </div>
+        
+        <div class="chart-row">
+          <div class="chart-card">
+            <div class="chart-label">Claims by asset type</div>
+            <div class="bar-chart">
+              <div class="bar-row"><span class="bar-name">Bank accounts</span><div class="bar-track"><div class="bar-fill" style="width:82%"></div></div><span class="bar-val">82</span></div>
+              <div class="bar-row"><span class="bar-name">Foreclosure</span><div class="bar-track"><div class="bar-fill" style="width:61%;background:#388bfd"></div></div><span class="bar-val">61</span></div>
+              <div class="bar-row"><span class="bar-name">Insurance</span><div class="bar-track"><div class="bar-fill" style="width:47%;background:#3fb950"></div></div><span class="bar-val">47</span></div>
+              <div class="bar-row"><span class="bar-name">Pensions</span><div class="bar-track"><div class="bar-fill" style="width:35%;background:#d29922"></div></div><span class="bar-val">35</span></div>
+              <div class="bar-row"><span class="bar-name">Other</span><div class="bar-track"><div class="bar-fill" style="width:22%;background:#6e7681"></div></div><span class="bar-val">22</span></div>
+            </div>
+          </div>
+          <div class="chart-card">
+            <div class="chart-label">Claims by status</div>
+            <div class="donut-wrap">
+              <svg class="donut-svg" width="90" height="90" viewBox="0 0 90 90">
+                <circle cx="45" cy="45" r="32" fill="none" stroke="#21262d" stroke-width="14"/>
+                <circle cx="45" cy="45" r="32" fill="none" stroke="#c9a227" stroke-width="14" stroke-dasharray="50 151" stroke-dashoffset="-0" transform="rotate(-90 45 45)"/>
+                <circle cx="45" cy="45" r="32" fill="none" stroke="#388bfd" stroke-width="14" stroke-dasharray="37 151" stroke-dashoffset="-50" transform="rotate(-90 45 45)"/>
+                <circle cx="45" cy="45" r="32" fill="none" stroke="#3fb950" stroke-width="14" stroke-dasharray="40 151" stroke-dashoffset="-87" transform="rotate(-90 45 45)"/>
+                <circle cx="45" cy="45" r="32" fill="none" stroke="#6e7681" stroke-width="14" stroke-dasharray="24 151" stroke-dashoffset="-127" transform="rotate(-90 45 45)"/>
+                <text x="45" y="49" text-anchor="middle" fill="#e6edf3" font-size="13" font-weight="500">247</text>
+              </svg>
+              <div class="donut-legend">
+                <div class="legend-item"><div class="legend-dot" style="background:var(--gold)"></div>New (50)</div>
+                <div class="legend-item"><div class="legend-dot" style="background:var(--blue)"></div>In Review (37)</div>
+                <div class="legend-item"><div class="legend-dot" style="background:var(--green)"></div>Active (40)</div>
+                <div class="legend-item"><div class="legend-dot" style="background:var(--text3)"></div>Closed (24)</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="table-wrap">
+          <div class="table-header">
+            <div class="table-title">Recent submissions</div>
+            <button class="btn" onclick="setView('claims',document.querySelector('[onclick*=claims]'))">View all claims →</button>
+          </div>
+          <table>
+            <thead><tr><th>Name</th><th>Country</th><th>Asset Type</th><th>Status</th><th>Submitted</th></tr></thead>
+            <tbody>
+              <tr><td class="name-cell">Thabo Mokoena</td><td>🇿🇦 South Africa</td><td>Dormant bank account</td><td><span class="status-badge status-new"><span class="dot dot-new"></span>New</span></td><td>2 hours ago</td></tr>
+              <tr><td class="name-cell">Sarah Williams</td><td>🇬🇧 United Kingdom</td><td>Insurance payout</td><td><span class="status-badge status-review"><span class="dot dot-review"></span>In Review</span></td><td>5 hours ago</td></tr>
+              <tr><td class="name-cell">Kwame Asante</td><td>🇬🇭 Ghana</td><td>Foreclosure surplus</td><td><span class="status-badge status-new"><span class="dot dot-new"></span>New</span></td><td>Yesterday</td></tr>
+              <tr><td class="name-cell">Maria Santos</td><td>🇵🇹 Portugal</td><td>Pension arrears</td><td><span class="status-badge status-active"><span class="dot dot-active"></span>Active</span></td><td>2 days ago</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Claims -->
+    <div class="section" id="sec-claims">
+      <div class="topbar">
+        <div>
+          <div class="topbar-title">Claims Management</div>
+          <div class="topbar-meta">Search & Claim submissions</div>
+        </div>
+        <div class="topbar-actions">
+          <button class="btn">Export</button>
+        </div>
+      </div>
+      <div class="content">
+        <div class="table-wrap">
+          <div class="table-header">
+            <div class="filter-tabs" style="border:none;padding:0;margin:0">
+              <span class="filter-tab active" onclick="filterTab(this,'all')">All (247)</span>
+              <span class="filter-tab" onclick="filterTab(this,'new')">New (50)</span>
+              <span class="filter-tab" onclick="filterTab(this,'review')">In Review (37)</span>
+              <span class="filter-tab" onclick="filterTab(this,'active')">Active (40)</span>
+              <span class="filter-tab" onclick="filterTab(this,'closed')">Closed (24)</span>
+            </div>
+            <div class="search-box">
+              <span style="color:var(--text3);font-size:12px">⌕</span>
+              <input placeholder="Search by name, email, country…" id="claim-search" oninput="filterClaims()">
+            </div>
+          </div>
+          <table id="claims-table">
+            <thead><tr><th>Name</th><th>Email</th><th>Country</th><th>Asset Type</th><th>Status</th><th>Date</th><th></th></tr></thead>
+            <tbody id="claims-body">
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Agents -->
+    <div class="section" id="sec-agents">
+      <div class="topbar">
+        <div>
+          <div class="topbar-title">Agent Training</div>
+          <div class="topbar-meta">Training programme enquiries</div>
+        </div>
+        <div class="topbar-actions">
+          <button class="btn">Export</button>
+        </div>
+      </div>
+      <div class="content">
+        <div class="table-wrap">
+          <div class="table-header">
+            <div class="table-title">Training Applications</div>
+            <div class="search-box">
+              <span style="color:var(--text3);font-size:12px">⌕</span>
+              <input placeholder="Search applicants…">
+            </div>
+          </div>
+          <table>
+            <thead><tr><th>Name</th><th>Email</th><th>Country</th><th>Message</th><th>Status</th><th>Date</th><th></th></tr></thead>
+            <tbody>
+              <tr><td class="name-cell">James Oduya</td><td style="color:var(--text3)">j.oduya@email.com</td><td>🇳🇬 Nigeria</td><td style="max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text3)">Interested in asset identification module…</td><td><span class="status-badge status-new"><span class="dot dot-new"></span>New</span></td><td>Today</td><td><button class="action-btn" onclick="openModal('agent','James Oduya','j.oduya@email.com','Nigeria','Interested in the next training cohort for asset identification and database search techniques.')">View</button></td></tr>
+              <tr><td class="name-cell">Priya Nair</td><td style="color:var(--text3)">priya.n@gmail.com</td><td>🇮🇳 India</td><td style="max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text3)">Looking to enrol in legal frameworks course…</td><td><span class="status-badge status-review"><span class="dot dot-review"></span>In Review</span></td><td>Yesterday</td><td><button class="action-btn" onclick="openModal('agent','Priya Nair','priya.n@gmail.com','India','Looking to enrol in the legal frameworks and KYC compliance module.')">View</button></td></tr>
+              <tr><td class="name-cell">David Mensah</td><td style="color:var(--text3)">d.mensah@corp.gh</td><td>🇬🇭 Ghana</td><td style="max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text3)">Corporate team training inquiry…</td><td><span class="status-badge status-pending"><span class="dot dot-pending"></span>Pending</span></td><td>3 days ago</td><td><button class="action-btn">View</button></td></tr>
+              <tr><td class="name-cell">Claire Dubois</td><td style="color:var(--text3)">claire.d@outlook.fr</td><td>🇫🇷 France</td><td style="max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text3)">Ethics and confidentiality module…</td><td><span class="status-badge status-active"><span class="dot dot-active"></span>Enrolled</span></td><td>1 week ago</td><td><button class="action-btn">View</button></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Careers -->
+    <div class="section" id="sec-careers">
+      <div class="topbar">
+        <div>
+          <div class="topbar-title">Careers</div>
+          <div class="topbar-meta">Job postings & applications</div>
+        </div>
+        <div class="topbar-actions">
+          <button class="btn btn-primary" onclick="openJobModal()">+ Post Job</button>
+        </div>
+      </div>
+      <div class="content">
+        <div class="table-wrap" style="margin-bottom:16px">
+          <div class="table-header">
+            <div class="table-title">Active Job Postings</div>
+          </div>
+          <div class="empty" style="padding:32px">
+            <div style="font-size:28px;margin-bottom:8px;opacity:.3">◻</div>
+            <div>No open positions · <span style="color:var(--gold2);cursor:pointer" onclick="openJobModal()">Post a job →</span></div>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <div class="table-header"><div class="table-title">Speculative Applications</div></div>
+          <div class="empty">No speculative applications received yet.</div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Offices -->
+    <div class="section" id="sec-offices">
+      <div class="topbar">
+        <div>
+          <div class="topbar-title">Global Offices</div>
+          <div class="topbar-meta">Office locations & contacts</div>
+        </div>
+        <div class="topbar-actions">
+          <button class="btn btn-primary">+ Add Office</button>
+        </div>
+      </div>
+      <div class="content">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+          <div class="settings-section">
+            <div class="settings-section-head" style="display:flex;justify-content:space-between;align-items:center">
+              🇿🇦 Johannesburg, South Africa
+              <button class="action-btn">Edit</button>
+            </div>
+            <div class="settings-row"><div><div class="settings-row-label">Phone</div><div class="settings-row-sub">+27 11 000 0000</div></div></div>
+            <div class="settings-row"><div><div class="settings-row-label">Email</div><div class="settings-row-sub">za@assetvaultbi.com</div></div></div>
+            <div class="settings-row"><div><div class="settings-row-label">Status</div></div><span class="status-badge status-active" style="font-size:11px"><span class="dot dot-active"></span>Active</span></div>
+          </div>
+          <div class="settings-section">
+            <div class="settings-section-head" style="display:flex;justify-content:space-between;align-items:center">
+              🇬🇧 London, United Kingdom
+              <button class="action-btn">Edit</button>
+            </div>
+            <div class="settings-row"><div><div class="settings-row-label">Phone</div><div class="settings-row-sub">+44 20 0000 0000</div></div></div>
+            <div class="settings-row"><div><div class="settings-row-label">Email</div><div class="settings-row-sub">uk@assetvaultbi.com</div></div></div>
+            <div class="settings-row"><div><div class="settings-row-label">Status</div></div><span class="status-badge status-active" style="font-size:11px"><span class="dot dot-active"></span>Active</span></div>
+          </div>
+          <div class="settings-section">
+            <div class="settings-section-head" style="display:flex;justify-content:space-between;align-items:center">
+              🇺🇸 New York, United States
+              <button class="action-btn">Edit</button>
+            </div>
+            <div class="settings-row"><div><div class="settings-row-label">Phone</div><div class="settings-row-sub">+1 212 000 0000</div></div></div>
+            <div class="settings-row"><div><div class="settings-row-label">Email</div><div class="settings-row-sub">us@assetvaultbi.com</div></div></div>
+            <div class="settings-row"><div><div class="settings-row-label">Status</div></div><span class="status-badge status-review" style="font-size:11px"><span class="dot dot-review"></span>Setup</span></div>
+          </div>
+          <div class="settings-section" style="border:1px dashed var(--border);background:none;display:flex;align-items:center;justify-content:center;min-height:140px;cursor:pointer" onclick="sendPrompt('How do I add a new office location to the Asset Vault BI admin portal?')">
+            <div style="text-align:center;color:var(--text3)">
+              <div style="font-size:24px;margin-bottom:6px;opacity:.4">+</div>
+              <div style="font-size:12px">Add office</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Settings -->
+    <div class="section" id="sec-settings">
+      <div class="topbar">
+        <div>
+          <div class="topbar-title">Settings</div>
+          <div class="topbar-meta">System configuration</div>
+        </div>
+      </div>
+      <div class="content">
+        <div class="settings-section">
+          <div class="settings-section-head">Database Connection</div>
+          <div class="settings-row">
+            <div><div class="settings-row-label">MongoDB URI</div><div class="settings-row-sub">mongodb+srv://***@cluster0.mongodb.net/assetvaultbi</div></div>
+            <button class="action-btn">Edit</button>
+          </div>
+          <div class="settings-row">
+            <div><div class="settings-row-label">Connection status</div></div>
+            <span class="status-badge status-active"><span class="dot dot-active"></span>Connected</span>
+          </div>
+        </div>
+        <div class="settings-section">
+          <div class="settings-section-head">Notifications</div>
+          <div class="settings-row">
+            <div><div class="settings-row-label">Email on new claim</div><div class="settings-row-sub">Send notification when a claim is submitted</div></div>
+            <label class="toggle"><input type="checkbox" checked><span class="toggle-slider"></span></label>
+          </div>
+          <div class="settings-row">
+            <div><div class="settings-row-label">Email on training enquiry</div><div class="settings-row-sub">Notify when a training application arrives</div></div>
+            <label class="toggle"><input type="checkbox" checked><span class="toggle-slider"></span></label>
+          </div>
+          <div class="settings-row">
+            <div><div class="settings-row-label">Weekly digest</div><div class="settings-row-sub">Summary email every Monday</div></div>
+            <label class="toggle"><input type="checkbox"><span class="toggle-slider"></span></label>
+          </div>
+        </div>
+        <div class="settings-section">
+          <div class="settings-section-head">API Keys</div>
+          <div class="settings-row">
+            <div><div class="settings-row-label">Backend API URL</div><div class="settings-row-sub">https://api.assetvaultbi.com/v1</div></div>
+            <button class="action-btn">Edit</button>
+          </div>
+          <div class="settings-row">
+            <div><div class="settings-row-label">SMTP (Email)</div><div class="settings-row-sub">smtp.gmail.com · Configured</div></div>
+            <button class="action-btn">Edit</button>
+          </div>
+        </div>
+        <div class="settings-section">
+          <div class="settings-section-head">Admin Accounts</div>
+          <div class="settings-row">
+            <div><div class="settings-row-label">admin@assetvaultbi.com</div><div class="settings-row-sub">Super Admin · Last login: today</div></div>
+            <span class="status-badge status-active"><span class="dot dot-active"></span>Active</span>
+          </div>
+          <div class="settings-row">
+            <div><div class="settings-row-label">Add administrator</div></div>
+            <button class="btn btn-primary" style="font-size:11px;padding:4px 10px">+ Invite</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Detail Modal -->
+<div class="modal-backdrop" id="modal" onclick="closeModal(event)">
+  <div class="modal">
+    <div class="modal-head">
+      <h3 id="modal-title">Claim Details</h3>
+      <button class="modal-close" onclick="document.getElementById('modal').classList.remove('open')">✕</button>
+    </div>
+    <div class="modal-body" id="modal-body"></div>
+    <div class="modal-foot">
+      <button class="btn btn-danger" onclick="document.getElementById('modal').classList.remove('open')">Delete</button>
+      <button class="btn" onclick="document.getElementById('modal').classList.remove('open')">Cancel</button>
+      <button class="btn btn-primary" onclick="document.getElementById('modal').classList.remove('open')">Save Changes</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const claims = [
+  {name:'Thabo Mokoena',email:'t.mokoena@gmail.com',country:'🇿🇦 South Africa',asset:'Dormant bank account',status:'new',date:'2h ago',phone:'+27 71 000 0000',address:'Soweto, Johannesburg',notes:''},
+  {name:'Sarah Williams',email:'s.williams@email.co.uk',country:'🇬🇧 United Kingdom',asset:'Insurance payout',status:'review',date:'5h ago',phone:'+44 7700 000000',address:'Manchester, England',notes:''},
+  {name:'Kwame Asante',email:'k.asante@ghana.com',country:'🇬🇭 Ghana',asset:'Foreclosure surplus',status:'new',date:'Yesterday',phone:'+233 24 000 0000',address:'Accra, Ghana',notes:''},
+  {name:'Maria Santos',email:'maria.s@sapo.pt',country:'🇵🇹 Portugal',asset:'Pension arrears',status:'active',date:'2d ago',phone:'+351 91 000 0000',address:'Lisbon, Portugal',notes:'KYC complete'},
+  {name:'Ahmed Al-Rashid',email:'ahmed.r@email.ae',country:'🇦🇪 UAE',asset:'Uncashed dividends',status:'review',date:'3d ago',phone:'+971 50 000 0000',address:'Dubai, UAE',notes:''},
+  {name:'Nomsa Dlamini',email:'n.dlamini@email.co.za',country:'🇿🇦 South Africa',asset:'Unclaimed inheritance',status:'new',date:'4d ago',phone:'+27 82 000 0000',address:'Durban, KwaZulu-Natal',notes:''},
+  {name:'Pierre Laurent',email:'p.laurent@free.fr',country:'🇫🇷 France',asset:'Dormant savings',status:'closed',date:'1w ago',phone:'+33 6 00 00 00 00',address:'Paris, France',notes:'Resolved'},
+  {name:'Chinwe Obi',email:'c.obi@yahoo.com',country:'🇳🇬 Nigeria',asset:'Insurance payout',status:'new',date:'1w ago',phone:'+234 80 000 0000',address:'Lagos, Nigeria',notes:''},
+];
+
+let currentFilter = 'all';
+
+function renderClaims() {
+  const search = (document.getElementById('claim-search')||{}).value||'';
+  const tbody = document.getElementById('claims-body');
+  const filtered = claims.filter(c => {
+    const matchFilter = currentFilter === 'all' || c.status === currentFilter;
+    const matchSearch = !search || c.name.toLowerCase().includes(search.toLowerCase()) || c.country.toLowerCase().includes(search.toLowerCase()) || c.email.toLowerCase().includes(search.toLowerCase());
+    return matchFilter && matchSearch;
+  });
+  tbody.innerHTML = filtered.map(c => `
+    <tr>
+      <td class="name-cell">${c.name}</td>
+      <td style="color:var(--text3)">${c.email}</td>
+      <td>${c.country}</td>
+      <td style="color:var(--text2)">${c.asset}</td>
+      <td><span class="status-badge status-${c.status}"><span class="dot dot-${c.status}"></span>${{new:'New',review:'In Review',active:'Active',closed:'Closed',pending:'Pending'}[c.status]}</span></td>
+      <td style="color:var(--text3)">${c.date}</td>
+      <td><button class="action-btn" onclick='openClaimModal(${JSON.stringify(c)})'>View</button></td>
+    </tr>
+  `).join('') || `<tr><td colspan="7" class="empty">No claims match this filter.</td></tr>`;
+}
+
+function filterClaims() { renderClaims(); }
+
+function filterTab(el, filter) {
+  currentFilter = filter;
+  document.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  renderClaims();
+}
+
+function openClaimModal(c) {
+  document.getElementById('modal-title').textContent = 'Claim — ' + c.name;
+  document.getElementById('modal-body').innerHTML = `
+    <div class="field-row">
+      <div class="field"><label>First name</label><div class="val">${c.name.split(' ')[0]}</div></div>
+      <div class="field"><label>Last name</label><div class="val">${c.name.split(' ').slice(1).join(' ')}</div></div>
+    </div>
+    <div class="field-row">
+      <div class="field"><label>Email</label><div class="val">${c.email}</div></div>
+      <div class="field"><label>Phone</label><div class="val">${c.phone||'—'}</div></div>
+    </div>
+    <div class="field-row">
+      <div class="field"><label>Country</label><div class="val">${c.country}</div></div>
+      <div class="field"><label>Asset type</label><div class="val">${c.asset}</div></div>
+    </div>
+    <div class="field-row">
+      <div class="field full"><label>Address</label><div class="val">${c.address||'—'}</div></div>
+    </div>
+    <div class="field-row">
+      <div class="field"><label>Status</label>
+        <select class="status-select">
+          <option ${c.status==='new'?'selected':''}>New</option>
+          <option ${c.status==='review'?'selected':''}>In Review</option>
+          <option ${c.status==='active'?'selected':''}>Active</option>
+          <option ${c.status==='closed'?'selected':''}>Closed</option>
+        </select>
+      </div>
+      <div class="field"><label>Submitted</label><div class="val">${c.date}</div></div>
+    </div>
+    <div class="field-row">
+      <div class="field full"><label>Internal notes</label>
+        <textarea class="notes-area" placeholder="Add notes…">${c.notes||''}</textarea>
+      </div>
+    </div>
+  `;
+  document.getElementById('modal').classList.add('open');
+}
+
+function openModal(type, name, email, country, msg) {
+  document.getElementById('modal-title').textContent = (type==='agent'?'Training Application':'Entry') + ' — ' + name;
+  document.getElementById('modal-body').innerHTML = `
+    <div class="field-row">
+      <div class="field"><label>Name</label><div class="val">${name}</div></div>
+      <div class="field"><label>Country</label><div class="val">${country}</div></div>
+    </div>
+    <div class="field-row">
+      <div class="field full"><label>Email</label><div class="val">${email}</div></div>
+    </div>
+    <div class="field-row">
+      <div class="field full"><label>Message</label><div class="val" style="min-height:60px">${msg}</div></div>
+    </div>
+    <div class="field-row">
+      <div class="field"><label>Status</label>
+        <select class="status-select"><option>New</option><option>In Review</option><option selected>Enrolled</option><option>Declined</option></select>
+      </div>
+    </div>
+    <div class="field-row">
+      <div class="field full"><label>Internal notes</label>
+        <textarea class="notes-area" placeholder="Add notes…"></textarea>
+      </div>
+    </div>
+  `;
+  document.getElementById('modal').classList.add('open');
+}
+
+function openJobModal() {
+  document.getElementById('modal-title').textContent = 'Post New Job';
+  document.getElementById('modal-body').innerHTML = `
+    <div class="field-row">
+      <div class="field full"><label>Job Title</label><input class="status-select" placeholder="e.g. Senior Asset Recovery Specialist"></div>
+    </div>
+    <div class="field-row">
+      <div class="field"><label>Department</label><select class="status-select"><option>Operations</option><option>Legal</option><option>Technology</option><option>Training</option></select></div>
+      <div class="field"><label>Location</label><input class="status-select" placeholder="e.g. Johannesburg / Remote"></div>
+    </div>
+    <div class="field-row">
+      <div class="field full"><label>Description</label><textarea class="notes-area" style="min-height:120px" placeholder="Role description…"></textarea></div>
+    </div>
+  `;
+  document.getElementById('modal').classList.add('open');
+}
+
+function closeModal(e) {
+  if(e.target.id==='modal') document.getElementById('modal').classList.remove('open');
+}
+
+function setView(view, el) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.getElementById('sec-'+view).classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  if(el) el.classList.add('active');
+  if(view==='claims') renderClaims();
+}
+
+renderClaims();
+</script>
